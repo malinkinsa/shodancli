@@ -1,6 +1,5 @@
-use std::{env, process, time};
+use std::{env, process};
 use std::fmt::{Display, Formatter};
-use std::thread::sleep;
 use clap::Parser;
 use reqwest;
 use reqwest::Response;
@@ -79,7 +78,6 @@ async fn get_data(cfg:Config, target: &str) -> Result<(), Box<dyn std::error::Er
         let body: Answer = response.json::<Answer>().await?;
         println!("{}", body);
     } else {
-        sleep(time::Duration::from_millis(3000));
         println!("There are no entries for: {}", target);
     }
 
