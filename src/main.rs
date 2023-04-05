@@ -8,7 +8,7 @@ use serde_json::Value;
 
 #[derive(Parser, Debug)]
 #[command(version = "0.1.0", about = "Simple Shodan CLI tool for fast check ip addresses", long_about = "None")]
-struct Args {
+struct ShodanCliArgs {
     #[arg(short, long = "target", value_delimiter = ',')]
     targets: Vec<String>,
 }
@@ -20,11 +20,12 @@ struct Config {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct Answer {
+struct ShodanHostData {
     asn: String,
     city: String,
     country_code: String,
     country_name: String,
+    data: Vec<ShodanPortData>,
     ip: i64,
     ip_str: String,
     isp: String,
@@ -38,15 +39,68 @@ struct Answer {
     tag: Option<Vec<Value>>,
 }
 
-impl Display for Answer {
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct ShodanPortData {
+    #[serde(rename = "_shodan")]
+    shodan: Shodan,
+    cpe: Option<Vec<String>>,
+    cpe23: Option<Vec<String>>,
+    data: Option<String>,
+    domains: Option<Vec<String>>,
+    hash: i64,
+    hostname: Option<Vec<String>>,
+    info: Option<String>,
+    product: Option<String>,
+    port: i64,
+    transport: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct Shodan {
+    crawler: String,
+    id: String,
+    module: String,
+    ptr: Option<bool>,
+    region: String,
+}
+
+impl Display for ShodanHostData {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\
-        IP: {} \n\
-        ASN: {} \n\
-        Org: {} \n\
-        Open Ports: {:?} \n\
-        Last Update: {} \n",
-        self.ip_str, self.asn, self.org, self.ports, self.last_update)
+        let ports = {
+            let mut ports = self.ports.clone();
+            ports.sort();
+            ports.iter().map(|p| p.to_string()).collect::<Vec<_>>().join(", ")
+        };
+
+        let mut shodan_ports_data: String = String::new();
+        for port_data in &self.data {
+            shodan_ports_data.push_str(&format!(
+                "Port: {}/{} | {}\n",
+                port_data.port,
+                port_data.transport,
+                port_data.product.as_ref().map(|v| v.to_string())
+                    .unwrap_or_else(|| String::from("None")),
+            ));
+        }
+
+        write!(
+            f,
+            "IP: {}\nASN: {}\nCity: {}\nCountry code: {}\nCountry name: {}\nISP: {}\nLast update: {}\nOrganization: {}\nOS: {}\nPort list: {}\nComprehensive information about ports:\n{}\nRegion code: {}\nTag: {}\n",
+            self.ip_str,
+            self.asn,
+            self.city,
+            self.country_code,
+            self.country_name,
+            self.isp,
+            self.last_update,
+            self.org,
+            self.os,
+            ports,
+            shodan_ports_data,
+            self.region_code,
+            self.tag.as_ref().map(|v| v.iter().map(|val| val.to_string())
+                .collect::<Vec<_>>().join(", ")).unwrap_or_else(|| String::from("None"))
+        )
     }
 }
 
@@ -58,24 +112,24 @@ impl Config {
         }
     }
 
-    fn get_api_key() -> String {
+    fn get_shodan_api_key() -> String {
         if env::var("SHODAN_API_KEY").is_ok() {
             env::var("SHODAN_API_KEY").unwrap()
         } else {
-            eprintln!("Please provide SHODAN_API_KEY env var");
+            eprintln!("Please set the SHODAN_API_KEY environment variable to your Shodan API key. You can obtain an API key from your account on the Shodan website (https://account.shodan.io/).");
             process::exit(1);
         }
     }
 }
 
-async fn get_data(cfg:Config, target: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn fetch_host_data(cfg:Config, target: &str) -> Result<(), Box<dyn std::error::Error>> {
     let url: String = format!(
         "https://api.shodan.io/shodan/host/{}?key={}", target.trim(), cfg.api_key
     );
     let response: Response = reqwest::get(url).await?;
 
     if response.status() == reqwest::StatusCode::OK {
-        let body: Answer = response.json::<Answer>().await?;
+        let body: ShodanHostData = response.json::<ShodanHostData>().await?;
         println!("{}", body);
     } else {
         println!("There are no entries for: {}", target);
@@ -84,9 +138,9 @@ async fn get_data(cfg:Config, target: &str) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
-async fn fetch_targets(cfg: Config) -> Result<(), Box<dyn std::error::Error>> {
+async fn fetch_data_for_targets(cfg: Config) -> Result<(), Box<dyn std::error::Error>> {
     let tasks = cfg.targets.iter().map(|target| {
-        get_data(cfg.clone(), target)
+        fetch_host_data(cfg.clone(), target)
     });
 
     futures::future::join_all(tasks).await;
@@ -95,10 +149,42 @@ async fn fetch_targets(cfg: Config) -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Args = Args::parse();
-    let api_key:String = Config::get_api_key();
+    let args: ShodanCliArgs = ShodanCliArgs::parse();
+    let api_key:String = Config::get_shodan_api_key();
     let cfg:Config = Config::new(api_key, args.targets.clone());
 
-    fetch_targets(cfg).await?;
+    fetch_data_for_targets(cfg).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_new() {
+        let api_key = "my_api_key".to_string();
+        let targets = vec!["127.0.0.1".to_string(), "0.0.0.0".to_string()];
+        let config = Config::new(api_key.clone(), targets.clone());
+
+        assert_eq!(config.api_key, api_key);
+        assert_eq!(config.targets, targets);
+    }
+
+    #[test]
+    fn test_config_get_api_key() {
+        env::set_var("SHODAN_API_KEY", "my_api_key");
+
+        assert_eq!(Config::get_shodan_api_key(), "my_api_key".to_string());
+    }
+
+    #[tokio::test]
+    async fn test_fetch_targets() {
+        let api_key = "my_api_key".to_string();
+        let targets = vec!["127.0.0.1".to_string(), "0.0.0.0".to_string()];
+        let config = Config::new(api_key, targets);
+        let result = fetch_data_for_targets(config).await;
+
+        assert!(result.is_ok());
+    }
 }
