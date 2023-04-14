@@ -36,7 +36,7 @@ struct ShodanHostData {
     os: Value,
     ports: Vec<i64>,
     region_code: String,
-    tag: Option<Vec<Value>>,
+    tags: Option<Vec<Value>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -83,9 +83,34 @@ impl Display for ShodanHostData {
             ));
         }
 
+        let tags = if let Some(tags) = &self.tags {
+            if tags.is_empty() {
+                String::from("None")
+            } else {
+                tags.iter().map(|v|v.to_string()).collect::<Vec<_>>().join(", ")
+            }
+        } else {
+            String::from("None")
+        };
+
         write!(
             f,
-            "IP: {}\nASN: {}\nCity: {}\nCountry code: {}\nCountry name: {}\nISP: {}\nLast update: {}\nOrganization: {}\nOS: {}\nPort list: {}\nComprehensive information about ports:\n{}\nRegion code: {}\nTag: {}\n",
+            "IP:           {}\n\
+            ASN:          {}\n\
+            City:         {}\n\
+            Country code: {}\n\
+            Country name: {}\n\
+            ISP:          {}\n\
+            Last update:  {}\n\
+            Organization: {}\n\
+            OS:           {}\n\
+            Port list:    {}\n\
+            Comprehensive information about ports:\n\
+                          {}\n\
+            Region code:  {}\n\
+            Tags:         {}\n\
+            Link:         {}\n\
+            ",
             self.ip_str,
             self.asn,
             self.city,
@@ -98,8 +123,8 @@ impl Display for ShodanHostData {
             ports,
             shodan_ports_data,
             self.region_code,
-            self.tag.as_ref().map(|v| v.iter().map(|val| val.to_string())
-                .collect::<Vec<_>>().join(", ")).unwrap_or_else(|| String::from("None"))
+            tags,
+            format!("https://www.shodan.io/host/{}", self.ip_str),
         )
     }
 }
