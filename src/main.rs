@@ -7,9 +7,16 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Parser, Debug)]
-#[command(version = "0.1.2", about = "Simple Shodan CLI tool for fast check ip addresses", long_about = "None")]
+#[command(author, name = "ShodanCLI", version, about = "Simple Shodan CLI tool for fast check ip addresses", long_about = r#"
+ShodanCLI
+
+Author: Sergey Malinkin <malinkinsa@gmail.com>
+
+This is a simple command-line tool for interacting with the Shodan API to quickly check IP addresses.
+You can find the source code of this tool in the GitHub repository: https://github.com/malinkinsa/shodancli"#)]
 struct ShodanCliArgs {
     #[arg(short, long = "targets", value_delimiter = ',')]
+    /// Target IP addresses separated by comma
     targets: Vec<String>,
 }
 
