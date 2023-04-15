@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Parser, Debug)]
-#[command(version = "0.1.0", about = "Simple Shodan CLI tool for fast check ip addresses", long_about = "None")]
+#[command(version = "0.1.2", about = "Simple Shodan CLI tool for fast check ip addresses", long_about = "None")]
 struct ShodanCliArgs {
-    #[arg(short, long = "target", value_delimiter = ',')]
+    #[arg(short, long = "targets", value_delimiter = ',')]
     targets: Vec<String>,
 }
 
