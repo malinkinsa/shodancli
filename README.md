@@ -10,6 +10,16 @@ This is a simple command-line interface (CLI) tool written in Rust, that allows 
     Shodan API key
 
 ## Usage
+- Download pre-built binary files from the "Releases" section. Depending on your system architecture, choose the appropriate file:
+
+  | File name                                 | System                                              | Architecture              | Toolchain                      |
+  |-------------------------------------------|-----------------------------------------------------|---------------------------|--------------------------------|
+  | shodancli-aarch64-apple-darwin.tar.gz     | macOS with Apple Silicon (M1/M2) processor          | ARM64                     | N/A                            |
+  | shodancli-universal-apple-darwin.tar.gz   | macOS with Intel/Silicon processor                  | Universal (x86_64, ARM64) | N/A                            |
+  | shodancli-x86_64-apple-darwin.tar.gz      | macOS with Intel x86_64 processor                   | x86_64                    | N/A                            |
+  | shodancli-x86_64-pc-windows-gnu.zip       | Windows with x86_64 processor, using GNU toolchain  | x86_64                    | GNU toolchain                  |
+  | shodancli-x86_64-pc-windows-msvc.zip      | Windows with x86_64 processor, using MSVC toolchain | x86_64                    | Microsoft Visual C++ toolchain |
+  | shodancli-x86_64-unknown-linux-gnu.tar.gz | Linux with x86_64 processor, using GNU toolchain    | x86_64                    | GNU toolchain                  |
 
 - Set the SHODAN_API_KEY environment variable to your Shodan API key.
 - Run the tool with the command cargo run -- -t <TARGET_IP>.
@@ -32,7 +42,7 @@ This is a simple command-line interface (CLI) tool written in Rust, that allows 
 
 - Run the tool by executing the binary file with the command: 
   ```bash
-  ./target/release/shodan-cli -t <TARGET_IP> 
+  ./target/release/shodancli -t <TARGET_IP> 
   ```
   where <TARGET_IP> is the IP address(es) you want to check. You can specify multiple IP addresses separated by comma, like ./target/release/shodan-cli -t 127.0.0.1,8.8.8.8
 
