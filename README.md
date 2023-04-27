@@ -5,9 +5,11 @@
 This is a simple command-line interface (CLI) tool written in Rust, that allows users to fetch data related to IP addresses from the Shodan API.
 
 ## Requirements
-
-    Rust programming language (version 1.51.0 or higher)
+### For using
     Shodan API key
+
+### For building
+    Rust programming language (version 1.51.0 or higher)
 
 ## Usage
 - Download pre-built binary files from the "Releases" section. Depending on your system architecture, choose the appropriate file:
